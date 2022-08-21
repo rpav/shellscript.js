@@ -1,0 +1,14 @@
+{
+  "name": "shellscript",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "exports": {
+    ".": { "import": "./sh.js" }
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ryan Pavlik <rpavlik@gmail.com>",
+  "license": "MIT"
+}
