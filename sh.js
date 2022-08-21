@@ -5,6 +5,8 @@ import fs from 'fs';
 import Path from 'path';
 import util from 'util';
 
+const ENV = ps.env;
+
 class Conf {
   constructor() {
     this.values = {};
@@ -76,16 +78,33 @@ function mkOptFun(f) {
   }
 }
 
+function direxpand(path) {
+  if(path[0] == '~')
+    return Path.join(ENV['HOME'], path.substr(1));
+
+  return path;
+}
+
 const Fns = {
+  basename(c, path, ext) {
+    return Path.basename(path, ext);
+  },
+
   cd(c, path) {
-    return ps.chdir(path);
+    return ps.chdir(direxpand(path));
   },
 
   chmod(c, mode, path) {
-    return fs.chmodSync(path, mode);
+    return fs.chmodSync(direxpand(path), mode);
   },
 
   cp(c, src, dest) {
+    src = direxpand(src);
+    dest = direxpand(dest);
+
+    if(sh.isDir(dest))
+      dest = Path.join(dest, sh.basename(src));
+
     return fs.cpSync(src, dest);
   },
 
@@ -95,12 +114,27 @@ const Fns = {
 
   exists(c, path) {
     const doFollow = c.get(["f", "follow"]);
+    path = direxpand(path);
 
     let stat = doFollow ? fs.statSync(path, { throwIfNoEntry: false }) : fs.lstatSync(path, { throwIfNoEntry: false });
     return (stat != null)
   },
 
+  isDir(c, path) {
+    path = direxpand(path);
+
+    const stat = fs.statSync(path, { throwIfNoEntry: false });
+
+    return stat && stat.isDirectory();
+  },
+
   ln(c, src, dest) {
+    src = direxpand(src);
+    dest = direxpand(dest);
+
+    if(sh.isDir(dest))
+      dest = Path.join(dest, sh.basename(src));
+
     const isSymlink = c.get(["s", "symbolic"]);
     const doForce = c.get(["f", "force"]);
 
@@ -124,7 +158,8 @@ const Fns = {
 
     let r = asMap ? {} : [];
 
-    for(const path of args) {
+    for(const cpath of args) {
+      const path = direxpand(cpath);
       const thismap = asMap ? {} : null;
 
       if(asMap) {
@@ -165,22 +200,29 @@ const Fns = {
 
   mkdir(c, path) {
     const recursive = c.get(["r", "p", "recursive", "parents"]);
-    return fs.mkdirSync(path, { recursive: recursive });
+    return fs.mkdirSync(direxpand(path), { recursive: recursive });
   },
 
   mv(c, src, dest) {
+    src = direxpand(src);
+    dest = direxpand(dest);
+
+    if(sh.isDir(dest))
+      dest = Path.join(dest, sh.basename(src));
+
     return fs.renameSync(src, dest);
   },
 
   realpath(c, path) {
-    return fs.realpathSync(path);
+    return fs.realpathSync(direxpand(path));
   },
 
   rm(c, ...files) {
     const force = c.get(["f", "force"]);
     const recursive = c.get(["r", "recursive"]);
 
-    for(const path of files) {
+    for(const cpath of files) {
+      const path = direxpand(cpath);
       let stat = fs.lstatSync(path, { throwIfNoEntry: false });
       if(!stat) {
         if(force) continue;
@@ -205,7 +247,7 @@ const Fns = {
   },
 
   write(c, path, data) {
-    return fs.writeFileSync(path, data);
+    return fs.writeFileSync(direxpand(path), data);
   },
 }
 
