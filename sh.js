@@ -79,7 +79,7 @@ function mkOptFun(f) {
 }
 
 function direxpand(path) {
-  if(path[0] == '~')
+  if(path && path[0] == '~')
     return Path.join(ENV['HOME'], path.substr(1));
 
   return path;
@@ -87,7 +87,7 @@ function direxpand(path) {
 
 const Fns = {
   basename(c, path, ext) {
-    return Path.basename(path, ext);
+    return path && Path.basename(path, ext);
   },
 
   cd(c, path) {
@@ -214,7 +214,7 @@ const Fns = {
   },
 
   realpath(c, path) {
-    return fs.realpathSync(direxpand(path));
+    return path && fs.realpathSync(direxpand(path));
   },
 
   rm(c, ...files) {
